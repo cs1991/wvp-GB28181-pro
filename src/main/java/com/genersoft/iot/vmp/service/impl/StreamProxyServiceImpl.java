@@ -57,6 +57,86 @@ public class StreamProxyServiceImpl implements IStreamProxyService {
     @Autowired
     private IMediaServerService mediaServerService;
 
+    /**
+     * 获取流代理地址
+     * @param deviceId
+     * @param name
+     * @param deviceType
+     * @return
+     */
+    @Override
+    public WVPResult<StreamInfo> getStream(String deviceId, String name,String deviceType,String rtspUrl) {
+        StreamProxyItem proxyItem = null;
+        MediaServerItem mediaInfo;
+        WVPResult<StreamInfo> wvpResult = new WVPResult<>();
+        //1.先查询是否有这个流代理
+        proxyItem = videoManagerStorager.queryStreamProxy(deviceType,deviceId);
+        if (proxyItem != null) {
+            //有流代理，去获取流地址
+            StreamInfo streamInfo = mediaService.getStreamInfoByAppAndStreamWithCheck(deviceType, deviceId, proxyItem.getMediaServerId());
+            if (streamInfo != null){
+                wvpResult.setCode(0);
+                wvpResult.setMsg("success");
+                wvpResult.setData(streamInfo);
+            }else {
+                //zlm重启后，流代理没有保存，需要重新添加代理
+                mediaInfo = mediaServerService.getOne(proxyItem.getMediaServerId());
+                if (mediaInfo == null) {
+                    logger.warn("保存代理未找到在线的ZLM...");
+                    wvpResult.setMsg("保存失败");
+                    wvpResult.setCode(1);
+                    return wvpResult;
+                }
+
+                //更新一下这个流代理
+                addAndUpdateStream(proxyItem, mediaInfo, wvpResult);
+            }
+        }else {
+            proxyItem = new StreamProxyItem();
+            proxyItem.setUrl(rtspUrl);
+            proxyItem.setApp(deviceType);
+            proxyItem.setStream(deviceId);
+            proxyItem.setName(name);
+            proxyItem.setType("default");
+            mediaInfo = mediaServerService.getMediaServerForMinimumLoad();
+            if (mediaInfo == null) {
+                logger.warn("保存代理未找到在线的ZLM...");
+                wvpResult.setMsg("流媒体错误");
+                wvpResult.setCode(1);
+                return wvpResult;
+            }
+            String dstUrl = String.format("rtmp://%s:%s/%s/%s", "127.0.0.1", mediaInfo.getRtmpPort(), proxyItem.getApp(),
+                    proxyItem.getStream() );
+            proxyItem.setDst_url(dstUrl);
+            proxyItem.setMediaServerId(mediaInfo.getId());
+
+            if (videoManagerStorager.addStreamProxy(proxyItem)){
+                addAndUpdateStream(proxyItem,mediaInfo,wvpResult);
+            }else {
+                wvpResult.setMsg("流代理失败");
+                wvpResult.setCode(1);
+            }
+        }
+        return wvpResult;
+    }
+
+    //添加流代理
+    private void addAndUpdateStream(StreamProxyItem proxyItem, MediaServerItem mediaInfo, WVPResult<StreamInfo> wvpResult) {
+        JSONObject jsonObject = addStreamProxyToZlm(proxyItem);
+        if (jsonObject == null) {
+            wvpResult.setMsg("摄像头流拉取失败");
+            proxyItem.setEnable(false);
+            videoManagerStorager.updateStreamProxy(proxyItem);
+        }else {
+            StreamInfo streamInfo = mediaService.getStreamInfoByAppAndStream(
+                    mediaInfo, proxyItem.getApp(), proxyItem.getStream(), null);
+            proxyItem.setEnable(true);
+            videoManagerStorager.updateStreamProxy(proxyItem);
+            wvpResult.setCode(0);
+            wvpResult.setMsg("success");
+            wvpResult.setData(streamInfo);
+        }
+    }
 
     @Override
     public WVPResult<StreamInfo> save(StreamProxyItem param) {

@@ -10,6 +10,14 @@ import com.github.pagehelper.PageInfo;
 public interface IStreamProxyService {
 
     /**
+     * 获取流代理地址
+     * @param deviceId
+     * @param name
+     * @param deviceType
+     * @return
+     */
+    WVPResult<StreamInfo> getStream(String deviceId, String name,String deviceType,String rtspUrl);
+    /**
      * 保存视频代理
      * @param param
      */

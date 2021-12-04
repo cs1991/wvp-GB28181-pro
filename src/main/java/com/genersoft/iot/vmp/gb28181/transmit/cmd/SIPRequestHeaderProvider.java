@@ -13,6 +13,7 @@ import javax.sip.header.*;
 import javax.sip.message.Request;
 
 import com.genersoft.iot.vmp.common.StreamInfo;
+import com.genersoft.iot.vmp.common.VideoManagerConstants;
 import com.genersoft.iot.vmp.gb28181.session.VideoStreamSessionManager;
 import com.genersoft.iot.vmp.vmanager.gb28181.session.InfoCseqCache;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -218,10 +219,11 @@ public class SIPRequestHeaderProvider {
 		return request;
 	}
 
+	//只有回放的方法才会调用此方法
 	public Request createInfoRequest(Device device, StreamInfo streamInfo, String content)
 			throws PeerUnavailableException, ParseException, InvalidArgumentException {
 		Request request = null;
-		Dialog dialog = streamSession.getDialog(streamInfo.getDeviceID(), streamInfo.getChannelId());
+		Dialog dialog = streamSession.getDialog(VideoManagerConstants.VIDEO_PLAYBACK,streamInfo.getDeviceID(), streamInfo.getChannelId());
 
 		SipURI requestLine = sipFactory.createAddressFactory().createSipURI(device.getDeviceId(),
 				device.getHostAddress());

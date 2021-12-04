@@ -2,6 +2,7 @@ package com.genersoft.iot.vmp.web.gb28181;
 
 import com.alibaba.fastjson.JSONObject;
 import com.genersoft.iot.vmp.common.StreamInfo;
+import com.genersoft.iot.vmp.common.VideoManagerConstants;
 import com.genersoft.iot.vmp.conf.UserSetup;
 import com.genersoft.iot.vmp.gb28181.bean.Device;
 import com.genersoft.iot.vmp.gb28181.bean.DeviceChannel;
@@ -177,7 +178,7 @@ public class ApiStreamController {
             result.put("error","未找到流信息");
             return result;
         }
-        cmder.streamByeCmd(serial, code);
+        cmder.streamByeCmd(VideoManagerConstants.VIDEO_PREVIEW,serial, code);
         redisCatchStorage.stopPlay(streamInfo);
         storager.stopPlay(streamInfo.getDeviceID(), streamInfo.getChannelId());
         return null;

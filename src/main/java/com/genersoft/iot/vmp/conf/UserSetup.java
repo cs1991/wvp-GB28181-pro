@@ -23,7 +23,7 @@ public class UserSetup {
 
     private Boolean interfaceAuthentication = Boolean.TRUE;
 
-    private Boolean recordPushLive = Boolean.FALSE;
+    private Boolean recordPushLive = Boolean.TRUE;
 
     private Boolean logInDatebase = Boolean.TRUE;
 

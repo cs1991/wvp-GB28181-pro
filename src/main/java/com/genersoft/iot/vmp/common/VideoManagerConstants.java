@@ -10,11 +10,11 @@ public class VideoManagerConstants {
 	
 	public static final String WVP_SERVER_PREFIX = "VMP_SIGNALLING_SERVER_INFO_";
 
-	public static final String WVP_SERVER_STREAM_PUSH_PREFIX = "VMP_SIGNALLING_STREAM_PUSH_";
+	public static final String WVP_SERVER_STREAM_PUSH_PREFIX = "VMP_SIGNALLING_STREAM_";
 
 	public static final String MEDIA_SERVER_PREFIX = "VMP_MEDIA_SERVER_";
 
-	public static final String MEDIA_SERVERS_ONLINE_PREFIX = "VMP_MEDIA_ONLINE_SERVERS";
+	public static final String MEDIA_SERVERS_ONLINE_PREFIX = "VMP_MEDIA_ONLINE_SERVERS_";
 
 	public static final String MEDIA_STREAM_PREFIX = "VMP_MEDIA_STREAM";
 
@@ -22,14 +22,14 @@ public class VideoManagerConstants {
 
 	public static final String CACHEKEY_PREFIX = "VMP_CHANNEL_";
 
-	public static final String KEEPLIVEKEY_PREFIX = "VMP_keeplive_";
+	public static final String KEEPLIVEKEY_PREFIX = "VMP_KEEPALIVE_";
 
 	public static final String PLAYER_PREFIX = "VMP_PLAYER_";
 
 	public static final String PLAY_BLACK_PREFIX = "VMP_PLAYBACK_";
 	public static final String DOWNLOAD_PREFIX = "VMP_DOWNLOAD_";
 
-	public static final String PLATFORM_KEEPLIVEKEY_PREFIX = "VMP_PLATFORM_KEEPLIVE_";
+	public static final String PLATFORM_KEEPALIVE_PREFIX = "VMP_PLATFORM_KEEPALIVE_";
 
 	public static final String PLATFORM_CATCH_PREFIX = "VMP_PLATFORM_CATCH_";
 
@@ -38,8 +38,6 @@ public class VideoManagerConstants {
 	public static final String PLATFORM_REGISTER_INFO_PREFIX = "VMP_PLATFORM_REGISTER_INFO_";
 
 	public static final String PLATFORM_SEND_RTP_INFO_PREFIX = "VMP_PLATFORM_SEND_RTP_INFO_";
-
-	public static final String Pattern_Topic = "VMP_KEEPLIVE_PLATFORM_";
 
 	public static final String EVENT_ONLINE_REGISTER = "1";
 	
@@ -51,10 +49,15 @@ public class VideoManagerConstants {
 	
 	public static final String EVENT_OUTLINE_TIMEOUT = "2";
 
-	public static final String MEDIA_SSRC_USED_PREFIX = "VMP_media_used_ssrc_";
+	public static final String MEDIA_SSRC_USED_PREFIX = "VMP_MEDIA_USED_SSRC_";
 
-	public static final String MEDIA_TRANSACTION_USED_PREFIX = "VMP_media_transaction_";
+	public static final String MEDIA_TRANSACTION_USED_PREFIX = "VMP_MEDIA_TRANSACTION_";
 
 	//************************** redis 消息*********************************
-	public static final String WVP_MSG_STREAM_PUSH_CHANGE_PREFIX = "WVP_MSG_STREAM_PUSH_CHANGE";
+	public static final String WVP_MSG_STREAM_CHANGE__PREFIX = "WVP_MSG_STREAM_CHANGE_";
+
+	//视频播放的类型
+	public static final String VIDEO_PREVIEW = "VIDEO_PREVIEW";
+	public static final String VIDEO_PLAYBACK= "VIDEO_PLAYBACK";
+	public static final String VIDEO_DOWNLOAD= "VIDEO_DOWNLOAD";
 }

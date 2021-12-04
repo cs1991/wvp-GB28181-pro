@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.genersoft.iot.vmp.common.StreamInfo;
+import com.genersoft.iot.vmp.common.VideoManagerConstants;
 import com.genersoft.iot.vmp.conf.UserSetup;
 import com.genersoft.iot.vmp.gb28181.bean.Device;
 import com.genersoft.iot.vmp.gb28181.bean.DeviceChannel;
@@ -25,6 +26,7 @@ import com.genersoft.iot.vmp.vmanager.gb28181.play.bean.PlayResult;
 import com.genersoft.iot.vmp.service.IMediaService;
 import com.genersoft.iot.vmp.service.IPlayService;
 import gov.nist.javax.sip.stack.SIPDialog;
+import org.apache.http.util.TextUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,6 +78,78 @@ public class PlayServiceImpl implements IPlayService {
 
 
     @Override
+    public DeferredResult<ResponseEntity<String>> playStop( String deviceId, String channelId)
+    {
+        logger.debug(String.format("playStop 设备预览/回放停止API调用，streamId：%s_%s", deviceId, channelId ));
+
+        String uuid = UUID.randomUUID().toString();
+        DeferredResult<ResponseEntity<String>> result = new DeferredResult<ResponseEntity<String>>();
+
+        // 录像查询以channelId作为deviceId查询
+        String key = DeferredResultHolder.CALLBACK_CMD_STOP + deviceId + channelId;
+        resultHolder.put(key, uuid, result);
+        if(TextUtils.isEmpty(deviceId) || TextUtils.isEmpty(channelId)){
+            RequestMessage msg = new RequestMessage();
+            msg.setId(uuid);
+            msg.setKey(key);
+            msg.setData("点播未找到");
+            resultHolder.invokeAllResult(msg);
+            return result;
+        }
+
+        Device device = storager.queryVideoDevice(deviceId);
+        cmder.streamByeCmd(VideoManagerConstants.VIDEO_PREVIEW,deviceId, channelId, (event) -> {
+            StreamInfo streamInfo = redisCatchStorage.queryPlayByDevice(deviceId, channelId);
+            if (streamInfo == null) {
+                RequestMessage msg = new RequestMessage();
+                msg.setId(uuid);
+                msg.setKey(key);
+                msg.setData("点播未找到");
+                resultHolder.invokeAllResult(msg);
+                storager.stopPlay(deviceId, channelId);
+            }else {
+                redisCatchStorage.stopPlay(streamInfo);
+                storager.stopPlay(streamInfo.getDeviceID(), streamInfo.getChannelId());
+                RequestMessage msg = new RequestMessage();
+                msg.setId(uuid);
+                msg.setKey(key);
+                //Response response = event.getResponse();
+                msg.setData(String.format("success"));
+                resultHolder.invokeAllResult(msg);
+            }
+            mediaServerService.closeRTPServer(device, channelId,VideoManagerConstants.VIDEO_PREVIEW);
+        });
+
+        if (deviceId != null || channelId != null) {
+            JSONObject json = new JSONObject();
+            json.put("deviceId", deviceId);
+            json.put("channelId", channelId);
+            RequestMessage msg = new RequestMessage();
+            msg.setId(uuid);
+            msg.setKey(key);
+            msg.setData(json.toString());
+            resultHolder.invokeAllResult(msg);
+        } else {
+            logger.warn("设备预览/回放停止API调用失败！");
+            RequestMessage msg = new RequestMessage();
+            msg.setId(uuid);
+            msg.setKey(key);
+            msg.setData("streamId null");
+            resultHolder.invokeAllResult(msg);
+        }
+
+        // 超时处理
+        result.onTimeout(()->{
+            logger.warn(String.format("设备预览/回放停止超时，deviceId/channelId：%s_%s ", deviceId, channelId));
+            RequestMessage msg = new RequestMessage();
+            msg.setId(uuid);
+            msg.setKey(key);
+            msg.setData("Timeout");
+            resultHolder.invokeAllResult(msg);
+        });
+        return result;
+    }
+    @Override
     public PlayResult play(MediaServerItem mediaServerItem, String deviceId, String channelId, ZLMHttpHookSubscribe.Event hookEvent, SipSubscribe.Event errorEvent) {
         PlayResult playResult = new PlayResult();
         RequestMessage msg = new RequestMessage();
@@ -88,6 +162,14 @@ public class PlayServiceImpl implements IPlayService {
         playResult.setResult(result);
         // 录像查询以channelId作为deviceId查询
         resultHolder.put(key, uuid, result);
+        if(TextUtils.isEmpty(deviceId) || TextUtils.isEmpty(channelId)){
+            WVPResult wvpResult = new WVPResult();
+            wvpResult.setCode(-1);
+            wvpResult.setMsg("没有找到该设备或设备不在线");
+            msg.setData(wvpResult);
+            resultHolder.invokeResult(msg);
+            return playResult;
+        }
         if (mediaServerItem == null) {
             WVPResult wvpResult = new WVPResult();
             wvpResult.setCode(-1);
@@ -104,7 +186,7 @@ public class PlayServiceImpl implements IPlayService {
             logger.warn(String.format("设备点播超时，deviceId：%s ，channelId：%s", deviceId, channelId));
             WVPResult wvpResult = new WVPResult();
             wvpResult.setCode(-1);
-            SIPDialog dialog = streamSession.getDialog(deviceId, channelId);
+            SIPDialog dialog = streamSession.getDialog(VideoManagerConstants.VIDEO_PREVIEW,deviceId, channelId);
             if (dialog != null) {
                 wvpResult.setMsg("收流超时，请稍候重试");
             }else {
@@ -112,9 +194,9 @@ public class PlayServiceImpl implements IPlayService {
             }
             msg.setData(wvpResult);
             // 点播超时回复BYE
-            cmder.streamByeCmd(device.getDeviceId(), channelId);
+            cmder.streamByeCmd(VideoManagerConstants.VIDEO_PREVIEW,device.getDeviceId(), channelId);
             // 释放rtpserver
-            mediaServerService.closeRTPServer(playResult.getDevice(), channelId);
+            mediaServerService.closeRTPServer(playResult.getDevice(), channelId,VideoManagerConstants.VIDEO_PREVIEW);
             // 回复之前所有的点播请求
             resultHolder.invokeAllResult(msg);
         });
@@ -172,7 +254,7 @@ public class PlayServiceImpl implements IPlayService {
                 WVPResult wvpResult = new WVPResult();
                 wvpResult.setCode(-1);
                 // 点播返回sip错误
-                mediaServerService.closeRTPServer(playResult.getDevice(), channelId);
+                mediaServerService.closeRTPServer(playResult.getDevice(), channelId,VideoManagerConstants.VIDEO_PREVIEW);
                 wvpResult.setMsg(String.format("点播失败， 错误码： %s, %s", event.statusCode, event.msg));
                 msg.setData(wvpResult);
                 resultHolder.invokeAllResult(msg);
@@ -223,7 +305,7 @@ public class PlayServiceImpl implements IPlayService {
                     logger.info("收到订阅消息： " + response.toJSONString());
                     onPublishHandlerForPlay(mediaServerItemInuse, response, deviceId, channelId, uuid);
                 }, (event) -> {
-                    mediaServerService.closeRTPServer(playResult.getDevice(), channelId);
+                    mediaServerService.closeRTPServer(playResult.getDevice(), channelId,VideoManagerConstants.VIDEO_PREVIEW);
                     WVPResult wvpResult = new WVPResult();
                     wvpResult.setCode(-1);
                     wvpResult.setMsg(String.format("点播失败， 错误码： %s, %s", event.statusCode, event.msg));
@@ -235,7 +317,74 @@ public class PlayServiceImpl implements IPlayService {
 
         return playResult;
     }
+    @Override
+    public DeferredResult<ResponseEntity<String>> playBack(String deviceId, String channelId,
+                                                           String startTime,String endTime){
+        String uuid = UUID.randomUUID().toString();
+        String key = DeferredResultHolder.CALLBACK_CMD_PLAY + deviceId + channelId;
+        DeferredResult<ResponseEntity<String>> result = new DeferredResult<ResponseEntity<String>>(30000L);
+        resultHolder.put(DeferredResultHolder.CALLBACK_CMD_PLAY + deviceId + channelId, uuid, result);
 
+        if(TextUtils.isEmpty(deviceId) || TextUtils.isEmpty(channelId)){
+            RequestMessage msg = new RequestMessage();
+            msg.setId(uuid);
+            msg.setKey(key);
+            WVPResult wvpResult = new WVPResult();
+            wvpResult.setCode(-1);
+            wvpResult.setMsg("没有找到该设备或设备不在线");
+            msg.setData(wvpResult);
+            resultHolder.invokeResult(msg);
+            return result;
+        }
+
+        Device device = storager.queryVideoDevice(deviceId);
+        if (device == null) {
+            result.setResult(new ResponseEntity<>(HttpStatus.BAD_REQUEST));
+            return result;
+        }
+        MediaServerItem newMediaServerItem = getNewMediaServerItem(device);
+        SSRCInfo ssrcInfo = mediaServerService.openRTPServer(newMediaServerItem, null, true,null);
+
+        // 超时处理
+        result.onTimeout(()->{
+            logger.warn(String.format("设备回放超时，deviceId：%s ，channelId：%s", deviceId, channelId));
+            RequestMessage msg = new RequestMessage();
+            msg.setId(uuid);
+            msg.setKey(key);
+            msg.setData("Timeout");
+            resultHolder.invokeResult(msg);
+        });
+
+        StreamInfo streamInfo = redisCatchStorage.queryPlaybackByDevice(deviceId, channelId);
+        if (streamInfo != null) {
+            // 停止之前的回放
+            cmder.streamByeCmd(VideoManagerConstants.VIDEO_PLAYBACK,deviceId, channelId);
+        }
+
+
+        if (newMediaServerItem == null) {
+            logger.warn(String.format("设备回放超时，deviceId：%s ，channelId：%s", deviceId, channelId));
+            RequestMessage msg = new RequestMessage();
+            msg.setId(uuid);
+            msg.setKey(key);
+            msg.setData("Timeout");
+            resultHolder.invokeResult(msg);
+            return result;
+        }
+
+        cmder.playbackStreamCmd(newMediaServerItem, ssrcInfo, device, channelId, startTime, endTime, (MediaServerItem mediaServerItem, JSONObject response) -> {
+            logger.info("收到订阅消息： " + response.toJSONString());
+            onPublishHandlerForPlayBack(mediaServerItem, response, deviceId, channelId, uuid.toString());
+        }, event -> {
+            RequestMessage msg = new RequestMessage();
+            msg.setId(uuid);
+            msg.setKey(key);
+            msg.setData(String.format("回放失败， 错误码： %s, %s", event.statusCode, event.msg));
+            resultHolder.invokeResult(msg);
+        });
+
+        return result;
+    }
     @Override
     public void onPublishHandlerForPlay(MediaServerItem mediaServerItem, JSONObject resonse, String deviceId, String channelId, String uuid) {
         RequestMessage msg = new RequestMessage();

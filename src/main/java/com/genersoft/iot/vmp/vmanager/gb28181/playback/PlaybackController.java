@@ -1,6 +1,8 @@
 package com.genersoft.iot.vmp.vmanager.gb28181.playback;
 
 import com.genersoft.iot.vmp.common.StreamInfo;
+import com.genersoft.iot.vmp.common.VideoManagerConstants;
+import com.genersoft.iot.vmp.gb28181.bean.DeviceChannel;
 import com.genersoft.iot.vmp.gb28181.transmit.callback.DeferredResultHolder;
 import com.genersoft.iot.vmp.gb28181.transmit.callback.RequestMessage;
 //import com.genersoft.iot.vmp.media.zlm.ZLMRESTfulUtils;
@@ -62,7 +64,56 @@ public class PlaybackController {
 
 	@Autowired
 	private IMediaServerService mediaServerService;
+	@ApiOperation("开始视频回放(通过ip)")
+	@ApiImplicitParams({
+			@ApiImplicitParam(name = "ip", value = "设备Ip", dataTypeClass = String.class),
+			@ApiImplicitParam(name = "startTime", value = "开始时间", dataTypeClass = String.class),
+			@ApiImplicitParam(name = "endTime", value = "结束时间", dataTypeClass = String.class),
+	})
+	@GetMapping("/startByIp/{ip}")
+	public DeferredResult<ResponseEntity<String>> play(@PathVariable String ip,
+													   String startTime,String endTime) {
+		//先获取通道设备
+		DeviceChannel deviceChannel = storager.queryChannelByIp(ip);
+		String deviceId = null;
+		String channelId = null;
+		if(deviceChannel != null){
+			deviceId = deviceChannel.getDeviceId();
+			channelId = deviceChannel.getChannelId();
+		}
+		return playService.playBack(deviceId,channelId,startTime,endTime);
+	}
+	@ApiOperation("停止视频回放(通过IP)")
+	@ApiImplicitParams({
+			@ApiImplicitParam(name = "deviceId", value = "设备ID", dataTypeClass = String.class),
+			@ApiImplicitParam(name = "channelId", value = "通道ID", dataTypeClass = String.class),
+	})
+	@GetMapping("/stopByIp/{ip}")
+	public ResponseEntity<String> playStopByIp(@PathVariable String ip) {
+		//先获取通道设备
+		DeviceChannel deviceChannel = storager.queryChannelByIp(ip);
+		String deviceId = null;
+		String channelId = null;
+		if(deviceChannel != null){
+			deviceId = deviceChannel.getDeviceId();
+			channelId = deviceChannel.getChannelId();
+		}
+		cmder.streamByeCmd(VideoManagerConstants.VIDEO_PLAYBACK,deviceId, channelId);
 
+		if (logger.isDebugEnabled()) {
+			logger.debug(String.format("设备录像回放停止byip API调用，deviceId/channelId：%s/%s", deviceId, channelId));
+		}
+
+		if (deviceId != null && channelId != null) {
+			JSONObject json = new JSONObject();
+			json.put("deviceId", deviceId);
+			json.put("channelId", channelId);
+			return new ResponseEntity<String>(json.toString(), HttpStatus.OK);
+		} else {
+			logger.warn("设备录像回放停止byip API调用失败！");
+			return new ResponseEntity<String>(HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
 	@ApiOperation("开始视频回放")
 	@ApiImplicitParams({
 			@ApiImplicitParam(name = "deviceId", value = "设备ID", dataTypeClass = String.class),
@@ -75,58 +126,9 @@ public class PlaybackController {
 													   String startTime,String endTime) {
 
 		if (logger.isDebugEnabled()) {
-			logger.debug(String.format("设备回放 API调用，deviceId：%s ，channelId：%s", deviceId, channelId));
+			logger.debug(String.format("playbalck by deviceid 设备回放 API调用，deviceId：%s ，channelId：%s", deviceId, channelId));
 		}
-		String uuid = UUID.randomUUID().toString();
-		String key = DeferredResultHolder.CALLBACK_CMD_PLAYBACK + deviceId + channelId;
-		DeferredResult<ResponseEntity<String>> result = new DeferredResult<ResponseEntity<String>>(30000L);
-		Device device = storager.queryVideoDevice(deviceId);
-		if (device == null) {
-			result.setResult(new ResponseEntity<>(HttpStatus.BAD_REQUEST));
-			return result;
-		}
-		MediaServerItem newMediaServerItem = playService.getNewMediaServerItem(device);
-		SSRCInfo ssrcInfo = mediaServerService.openRTPServer(newMediaServerItem, null, true);
-
-		// 超时处理
-		result.onTimeout(()->{
-			logger.warn(String.format("设备回放超时，deviceId：%s ，channelId：%s", deviceId, channelId));
-			RequestMessage msg = new RequestMessage();
-			msg.setId(uuid);
-			msg.setKey(key);
-			msg.setData("Timeout");
-			resultHolder.invokeResult(msg);
-		});
-
-		StreamInfo streamInfo = redisCatchStorage.queryPlaybackByDevice(deviceId, channelId);
-		if (streamInfo != null) {
-			// 停止之前的回放
-			cmder.streamByeCmd(deviceId, channelId);
-		}
-		resultHolder.put(DeferredResultHolder.CALLBACK_CMD_PLAY + deviceId + channelId, uuid, result);
-
-		if (newMediaServerItem == null) {
-			logger.warn(String.format("设备回放超时，deviceId：%s ，channelId：%s", deviceId, channelId));
-			RequestMessage msg = new RequestMessage();
-			msg.setId(uuid);
-			msg.setKey(key);
-			msg.setData("Timeout");
-			resultHolder.invokeResult(msg);
-			return result;
-		}
-
-		cmder.playbackStreamCmd(newMediaServerItem, ssrcInfo, device, channelId, startTime, endTime, (MediaServerItem mediaServerItem, JSONObject response) -> {
-			logger.info("收到订阅消息： " + response.toJSONString());
-			playService.onPublishHandlerForPlayBack(mediaServerItem, response, deviceId, channelId, uuid.toString());
-		}, event -> {
-			RequestMessage msg = new RequestMessage();
-			msg.setId(uuid);
-			msg.setKey(key);
-			msg.setData(String.format("回放失败， 错误码： %s, %s", event.statusCode, event.msg));
-			resultHolder.invokeResult(msg);
-		});
-
-		return result;
+		return playService.playBack(deviceId,channelId,startTime,endTime);
 	}
 
 	@ApiOperation("停止视频回放")
@@ -137,7 +139,7 @@ public class PlaybackController {
 	@GetMapping("/stop/{deviceId}/{channelId}")
 	public ResponseEntity<String> playStop(@PathVariable String deviceId, @PathVariable String channelId) {
 
-		cmder.streamByeCmd(deviceId, channelId);
+		cmder.streamByeCmd(VideoManagerConstants.VIDEO_PLAYBACK,deviceId, channelId);
 
 		if (logger.isDebugEnabled()) {
 			logger.debug(String.format("设备录像回放停止 API调用，deviceId/channelId：%s/%s", deviceId, channelId));

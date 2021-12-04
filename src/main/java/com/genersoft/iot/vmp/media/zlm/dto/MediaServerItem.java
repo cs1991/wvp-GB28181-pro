@@ -61,6 +61,8 @@ public class MediaServerItem{
 
     private int currentPort;
 
+    private String fileId;
+    private String streamId;
 
     /**
      * 每一台ZLM都有一套独立的SSRC列表
@@ -308,5 +310,21 @@ public class MediaServerItem{
 
     public void setSendRtpPortRange(String sendRtpPortRange) {
         this.sendRtpPortRange = sendRtpPortRange;
+    }
+
+    public String getFileId() {
+        return fileId;
+    }
+
+    public void setFileId(String fileId) {
+        this.fileId = fileId;
+    }
+
+    public String getStreamId() {
+        return streamId;
+    }
+
+    public void setStreamId(String streamId) {
+        this.streamId = streamId;
     }
 }

@@ -82,6 +82,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         }else {
             // 可以直接访问的静态数据
             web.ignoring()
+                    .antMatchers("/**")
                     .antMatchers("/")
                     .antMatchers("/#/**")
                     .antMatchers("/static/**")

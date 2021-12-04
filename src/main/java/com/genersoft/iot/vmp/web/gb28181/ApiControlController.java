@@ -44,7 +44,14 @@ public class ApiControlController {
             logger.debug(String.format("模拟接口> 设备云台控制 API调用，deviceId：%s ，channelId：%s ，command：%d ，speed：%d ",
                     serial, code, command, speed));
         }
+        if (channel == null) {channel = 0;}
+        if (speed == null) {speed = 0;}
         Device device = storager.queryVideoDevice(serial);
+        if (device == null) {
+            JSONObject result = new JSONObject();
+            result.put("error","device[ " + serial + " ]未找到");
+            return result;
+        }
         int cmdCode = 0;
         switch (command){
             case "left":

@@ -1,7 +1,7 @@
 package com.genersoft.iot.vmp.gb28181.bean;
 
 public class SsrcTransaction {
-
+    private String videoType;
     private String deviceId;
     private String channelId;
     private String ssrc;
@@ -9,6 +9,14 @@ public class SsrcTransaction {
     private byte[] transaction;
     private byte[] dialog;
     private String mediaServerId;
+
+    public String getVideoType() {
+        return videoType;
+    }
+
+    public void setVideoType(String videoType) {
+        this.videoType = videoType;
+    }
 
     public String getDeviceId() {
         return deviceId;

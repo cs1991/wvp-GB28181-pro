@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.genersoft.iot.vmp.gb28181.bean.SendRtpItem;
 import com.genersoft.iot.vmp.media.zlm.dto.MediaServerItem;
+import org.apache.http.util.TextUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +24,7 @@ public class ZLMRTPServerFactory {
 
     private int[] portRangeArray = new int[2];
 
-    public int createRTPServer(MediaServerItem mediaServerItem, String streamId) {
+    public int createRTPServer(MediaServerItem mediaServerItem, String streamId,String callId) {
         Map<String, Integer> currentStreams = new HashMap<>();
         JSONObject listRtpServerJsonResult = zlmresTfulUtils.listRtpServer(mediaServerItem);
         if (listRtpServerJsonResult != null) {
@@ -56,6 +57,11 @@ public class ZLMRTPServerFactory {
         }
         param.put("enable_tcp", 1);
         param.put("stream_id", streamId);
+        //使用callid来区分不同的下载任务
+        if(!TextUtils.isEmpty(callId)){
+            param.put("call_id",callId);
+        }
+
         JSONObject openRtpServerResultJson = zlmresTfulUtils.openRtpServer(mediaServerItem, param);
 
         if (openRtpServerResultJson != null) {
@@ -67,10 +73,10 @@ public class ZLMRTPServerFactory {
                     Map<String, Object> closeRtpServerParam = new HashMap<>();
                     closeRtpServerParam.put("stream_id", streamId);
                     zlmresTfulUtils.closeRtpServer(mediaServerItem, closeRtpServerParam);
-                    result = createRTPServer(mediaServerItem, streamId);;
+                    result = createRTPServer(mediaServerItem, streamId,null);
                     break;
                 case -400: // 端口占用
-                    result= createRTPServer(mediaServerItem, streamId);
+                    result= createRTPServer(mediaServerItem, streamId,null);
                     break;
                 default:
                     logger.error("创建RTP Server 失败 {}: " + openRtpServerResultJson.getString("msg"),  param.get("port"));
@@ -80,9 +86,28 @@ public class ZLMRTPServerFactory {
             //  检查ZLM状态
             logger.error("创建RTP Server 失败 {}: 请检查ZLM服务", param.get("port"));
         }
+//        return 10000;
         return result;
     }
-
+    public boolean notifyFileDownladComplete(MediaServerItem serverItem,String stream_id) {
+        boolean result = false;
+        if (stream_id !=null){
+            Map<String, Object> param = new HashMap<>();
+            param.put("stream_id", stream_id);
+            JSONObject jsonObject = zlmresTfulUtils.notifyFileDownladComplete(serverItem, param);
+            if (jsonObject != null ) {
+                if (jsonObject.getInteger("code") == 0) {
+                    result = true;
+                }else {
+                    logger.error("关闭RTP Server 失败: " + jsonObject.getString("msg"));
+                }
+            }else {
+                //  检查ZLM状态
+                logger.error("关闭RTP Server 失败: 请检查ZLM服务");
+            }
+        }
+        return result;
+    }
     public boolean closeRTPServer(MediaServerItem serverItem, String streamId) {
         boolean result = false;
         if (serverItem !=null){
@@ -144,7 +169,7 @@ public class ZLMRTPServerFactory {
 
         // 使用RTPServer 功能找一个可用的端口
         String playSsrc = serverItem.getSsrcConfig().getPlaySsrc();
-        int localPort = createRTPServer(serverItem, playSsrc);
+        int localPort = createRTPServer(serverItem, playSsrc,null);
         if (localPort != -1) {
             // TODO 高并发时可能因为未放入缓存而ssrc冲突
             serverItem.getSsrcConfig().releaseSsrc(playSsrc);
@@ -179,7 +204,7 @@ public class ZLMRTPServerFactory {
      */
     public SendRtpItem createSendRtpItem(MediaServerItem serverItem, String ip, int port, String ssrc, String platformId, String app, String stream, String channelId, boolean tcp){
         String playSsrc = serverItem.getSsrcConfig().getPlaySsrc();
-        int localPort = createRTPServer(serverItem, playSsrc);
+        int localPort = createRTPServer(serverItem, playSsrc,null);
         if (localPort != -1) {
             // TODO 高并发时可能因为未放入缓存而ssrc冲突
             serverItem.getSsrcConfig().releaseSsrc(ssrc);

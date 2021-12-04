@@ -91,6 +91,14 @@ public interface IVideoManagerStorager {
 	public List<DeviceChannel> queryChannelsByDeviceId(String deviceId);
 
 	/**
+	 * 获取某个设备的通道列表
+	 *
+	 * @param ip 通道ip
+	 * @return
+	 */
+	public DeviceChannel queryChannelByIp(String ip);
+
+	/**
 	 * 获取某个设备的通道
 	 * @param deviceId 设备ID
 	 * @param channelId 通道ID

@@ -1,6 +1,7 @@
 package com.genersoft.iot.vmp.vmanager.gb28181.device;
 
 import com.alibaba.fastjson.JSONObject;
+import com.genersoft.iot.vmp.common.BaseData;
 import com.genersoft.iot.vmp.gb28181.bean.Device;
 import com.genersoft.iot.vmp.gb28181.bean.DeviceChannel;
 import com.genersoft.iot.vmp.gb28181.event.DeviceOffLineDetector;
@@ -131,7 +132,36 @@ public class DeviceQuery {
 		PageInfo pageResult = storager.queryChannelsByDeviceId(deviceId, query, channelType, online, page, count);
 		return new ResponseEntity<>(pageResult,HttpStatus.OK);
 	}
+	/**
+	 * 根据ip查询通道
+	 *
+	 * @param ip 设备id
+	 * @return 通道
+	 */
+	@ApiOperation("根据ip查询通道")
+	@GetMapping("/chanel/{ip}")
+	@ApiImplicitParams({
+			@ApiImplicitParam(name="ip", value = "通道的ip", required = true ,dataTypeClass = String.class)
+	})
+	public ResponseEntity<BaseData<DeviceChannel>> query(@PathVariable String ip) {
+		BaseData<DeviceChannel> deviceChannelBaseData = new BaseData<DeviceChannel>();
 
+		if (StringUtils.isEmpty(ip)) {
+			deviceChannelBaseData.setCode(1);
+			deviceChannelBaseData.setMsg("ip不能为空");
+			deviceChannelBaseData.setData(null);
+			return new ResponseEntity<>(deviceChannelBaseData,HttpStatus.OK);
+		}
+		DeviceChannel deviceChannel = storager.queryChannelByIp(ip);
+		if (deviceChannel == null) {
+			deviceChannelBaseData.setCode(1);
+			deviceChannelBaseData.setMsg("没有此设备");
+			deviceChannelBaseData.setData(null);
+			return new ResponseEntity<>(deviceChannelBaseData,HttpStatus.OK);
+		}
+		deviceChannelBaseData.setData(deviceChannel);
+		return new ResponseEntity<>(deviceChannelBaseData,HttpStatus.OK);
+	}
 	/**
 	 * 同步设备通道
 	 * @param deviceId 设备id

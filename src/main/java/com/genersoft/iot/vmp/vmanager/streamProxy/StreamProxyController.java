@@ -60,6 +60,22 @@ public class StreamProxyController {
 
         return streamProxyService.getAll(page, count);
     }
+    @ApiOperation("获取流代理地址")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name="deviceId", value = "设备唯一标识（对应流Id)", dataTypeClass = String.class),
+            @ApiImplicitParam(name="name", value = "设备名称（对应名称）", dataTypeClass = String.class),
+            @ApiImplicitParam(name="deviceType", value = "设备类型（对应流应用名,不能有中文）", dataTypeClass = String.class),
+            @ApiImplicitParam(name="rtspUrl", value = "摄像头原始流地址", dataTypeClass = String.class),
+    })
+    @GetMapping(value = "/getStream")
+    @ResponseBody
+    public WVPResult getStream(@RequestParam(required = true)String deviceId,
+                                          @RequestParam(required = true)String name,
+                                          @RequestParam(required = true)String deviceType,
+                                               @RequestParam(required = true)String rtspUrl){
+
+        return streamProxyService.getStream(deviceId, name,deviceType,rtspUrl);
+    }
 
     @ApiOperation("保存代理")
     @ApiImplicitParams({

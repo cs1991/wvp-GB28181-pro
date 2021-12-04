@@ -20,6 +20,7 @@ public class WVPTimerTask {
     @Autowired
     private UserSetup userSetup;
 
+
     @Value("${server.port}")
     private int serverPort;
 
@@ -31,6 +32,6 @@ public class WVPTimerTask {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("ip", sipConfig.getIp());
         jsonObject.put("port", serverPort);
-        redisCatchStorage.updateWVPInfo(userSetup.getServerId(), jsonObject, 3);
+        redisCatchStorage.updateWVPInfo(jsonObject, 3);
     }
 }

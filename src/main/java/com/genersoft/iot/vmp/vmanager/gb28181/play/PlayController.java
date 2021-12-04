@@ -2,6 +2,7 @@ package com.genersoft.iot.vmp.vmanager.gb28181.play;
 
 import com.alibaba.fastjson.JSONArray;
 import com.genersoft.iot.vmp.common.StreamInfo;
+import com.genersoft.iot.vmp.gb28181.bean.DeviceChannel;
 import com.genersoft.iot.vmp.gb28181.bean.SsrcTransaction;
 import com.genersoft.iot.vmp.gb28181.session.VideoStreamSessionManager;
 import com.genersoft.iot.vmp.gb28181.bean.Device;
@@ -92,7 +93,28 @@ public class PlayController {
 
 		return playResult.getResult();
 	}
+	@ApiOperation("开始点播(通过通道的ip)")
+	@ApiImplicitParams({
+			@ApiImplicitParam(name = "ip", value = "通道ip", dataTypeClass = String.class),
+	})
+	@GetMapping("/startByIp/{ip}")
+	public DeferredResult<ResponseEntity<String>> playByChanelIp(@PathVariable String ip) {
+		//先获取通道设备
+		DeviceChannel deviceChannel = storager.queryChannelByIp(ip);
+		String deviceId = null;
+		String chanelId = null;
+		Device device = null;
+		if(deviceChannel != null){
+			deviceId = deviceChannel.getDeviceId();
+			chanelId = deviceChannel.getChannelId();
+			// 获取可用的zlm
+			device = storager.queryVideoDevice(deviceChannel.getDeviceId());
+		}
+		MediaServerItem newMediaServerItem = playService.getNewMediaServerItem(device);
+		PlayResult playResult = playService.play(newMediaServerItem, deviceId, chanelId, null, null);
 
+		return playResult.getResult();
+	}
 	@ApiOperation("停止点播")
 	@ApiImplicitParams({
 			@ApiImplicitParam(name = "deviceId", value = "设备ID", dataTypeClass = String.class),
@@ -101,67 +123,23 @@ public class PlayController {
 	@GetMapping("/stop/{deviceId}/{channelId}")
 	public DeferredResult<ResponseEntity<String>> playStop(@PathVariable String deviceId, @PathVariable String channelId) {
 
-		logger.debug(String.format("设备预览/回放停止API调用，streamId：%s_%s", deviceId, channelId ));
-
-		String uuid = UUID.randomUUID().toString();
-		DeferredResult<ResponseEntity<String>> result = new DeferredResult<ResponseEntity<String>>();
-
-		// 录像查询以channelId作为deviceId查询
-		String key = DeferredResultHolder.CALLBACK_CMD_STOP + deviceId + channelId;
-		resultHolder.put(key, uuid, result);
-		Device device = storager.queryVideoDevice(deviceId);
-		cmder.streamByeCmd(deviceId, channelId, (event) -> {
-			StreamInfo streamInfo = redisCatchStorage.queryPlayByDevice(deviceId, channelId);
-			if (streamInfo == null) {
-				RequestMessage msg = new RequestMessage();
-				msg.setId(uuid);
-				msg.setKey(key);
-				msg.setData("点播未找到");
-				resultHolder.invokeAllResult(msg);
-				storager.stopPlay(deviceId, channelId);
-			}else {
-				redisCatchStorage.stopPlay(streamInfo);
-				storager.stopPlay(streamInfo.getDeviceID(), streamInfo.getChannelId());
-				RequestMessage msg = new RequestMessage();
-				msg.setId(uuid);
-				msg.setKey(key);
-				//Response response = event.getResponse();
-				msg.setData(String.format("success"));
-				resultHolder.invokeAllResult(msg);
-			}
-			mediaServerService.closeRTPServer(device, channelId);
-		});
-
-		if (deviceId != null || channelId != null) {
-			JSONObject json = new JSONObject();
-			json.put("deviceId", deviceId);
-			json.put("channelId", channelId);
-			RequestMessage msg = new RequestMessage();
-			msg.setId(uuid);
-			msg.setKey(key);
-			msg.setData(json.toString());
-			resultHolder.invokeAllResult(msg);
-		} else {
-			logger.warn("设备预览/回放停止API调用失败！");
-			RequestMessage msg = new RequestMessage();
-			msg.setId(uuid);
-			msg.setKey(key);
-			msg.setData("streamId null");
-			resultHolder.invokeAllResult(msg);
-		}
-
-		// 超时处理
-		result.onTimeout(()->{
-			logger.warn(String.format("设备预览/回放停止超时，deviceId/channelId：%s_%s ", deviceId, channelId));
-			RequestMessage msg = new RequestMessage();
-			msg.setId(uuid);
-			msg.setKey(key);
-			msg.setData("Timeout");
-			resultHolder.invokeAllResult(msg);
-		});
-		return result;
+		return playService.playStop(deviceId,channelId);
 	}
-
+	@ApiOperation("停止点播（通过通道的ip）")
+	@ApiImplicitParams({
+			@ApiImplicitParam(name = "ip", value = "通道的ip", dataTypeClass = String.class),
+	})
+	@GetMapping("/stopByIp/{ip}")
+	public DeferredResult<ResponseEntity<String>> playStopByIp(@PathVariable String ip) {
+		DeviceChannel deviceChannel = storager.queryChannelByIp(ip);
+		String deviceIdTemp = null;
+		String channelIdTemp = null;
+		if(deviceChannel != null){
+			deviceIdTemp = deviceChannel.getDeviceId();
+			channelIdTemp = deviceChannel.getChannelId();
+		}
+		return playService.playStop(deviceIdTemp,channelIdTemp);
+	}
 	/**
 	 * 将不是h264的视频通过ffmpeg 转码为h264 + aac
 	 * @param streamId 流ID

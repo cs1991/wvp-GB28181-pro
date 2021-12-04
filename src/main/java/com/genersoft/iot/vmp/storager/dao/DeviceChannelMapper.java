@@ -67,7 +67,8 @@ public interface DeviceChannelMapper {
             " ORDER BY channelId ASC" +
             " </script>"})
     List<DeviceChannel> queryChannelsByDeviceId(String deviceId, String parentChannelId, String query, Boolean hasSubChannel, Boolean online);
-
+    @Select("SELECT * FROM device_channel WHERE address=#{ip}")
+    DeviceChannel queryChannelByIp(String ip);
     @Select("SELECT * FROM device_channel WHERE deviceId=#{deviceId} AND channelId=#{channelId}")
     DeviceChannel queryChannel(String deviceId, String channelId);
 

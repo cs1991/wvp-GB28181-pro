@@ -36,9 +36,11 @@ public interface IMediaServerService {
 
     SSRCInfo openRTPServer(MediaServerItem mediaServerItem, String streamId);
 
-    SSRCInfo openRTPServer(MediaServerItem mediaServerItem, String streamId, boolean isPlayback);
+    SSRCInfo openRTPServer(MediaServerItem mediaServerItem, String streamId,boolean isPlayback, String callId);
 
-    void closeRTPServer(Device device, String channelId);
+    void closeRTPServer(Device device, String channelId, String videoType);
+
+    void notifyFileDownladComplete(String stream_id,Device device, String channelId, String videoType);
 
     void clearRTPServer(MediaServerItem mediaServerItem);
 
@@ -53,7 +55,7 @@ public interface IMediaServerService {
     void clearMediaServerForOnline();
 
     WVPResult<String> add(MediaServerItem mediaSerItem);
-
+    int addToDatabase(MediaServerItem mediaSerItem);
     void resetOnlineServerItem(MediaServerItem serverItem);
 
     WVPResult<MediaServerItem> checkMediaServer(String ip, int port, String secret);

@@ -222,10 +222,12 @@ public class ZLMRESTfulUtils {
         return sendPost(mediaServerItem, "openRtpServer",param, null);
     }
 
+    public JSONObject notifyFileDownladComplete(MediaServerItem mediaServerItem, Map<String, Object> param) {
+        return sendPost(mediaServerItem, "notifyFileDownladComplete",param, null);
+    }
     public JSONObject closeRtpServer(MediaServerItem mediaServerItem, Map<String, Object> param) {
         return sendPost(mediaServerItem, "closeRtpServer",param, null);
     }
-
     public JSONObject listRtpServer(MediaServerItem mediaServerItem) {
         return sendPost(mediaServerItem, "listRtpServer",null, null);
     }

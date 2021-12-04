@@ -1,5 +1,6 @@
 package com.genersoft.iot.vmp.storager.impl;
 
+import com.genersoft.iot.vmp.common.VideoManagerConstants;
 import com.genersoft.iot.vmp.gb28181.bean.*;
 import com.genersoft.iot.vmp.gb28181.session.VideoStreamSessionManager;
 import com.genersoft.iot.vmp.media.zlm.dto.MediaServerItem;
@@ -127,7 +128,7 @@ public class VideoManagerStoragerImpl implements IVideoManagerStorager {
 	public synchronized void updateChannel(String deviceId, DeviceChannel channel) {
 		String channelId = channel.getChannelId();
 		channel.setDeviceId(deviceId);
-		channel.setStreamId(streamSession.getStreamId(deviceId, channel.getChannelId()));
+		channel.setStreamId(streamSession.getStreamId(VideoManagerConstants.VIDEO_PLAYBACK,deviceId, channel.getChannelId()));
 		String now = this.format.format(System.currentTimeMillis());
 		channel.setUpdateTime(now);
 		DeviceChannel deviceChannel = deviceChannelMapper.queryChannel(deviceId, channelId);
@@ -177,7 +178,10 @@ public class VideoManagerStoragerImpl implements IVideoManagerStorager {
 		List<DeviceChannel> all = deviceChannelMapper.queryChannelsByDeviceId(deviceId, null, query, hasSubChannel, online);
 		return new PageInfo<>(all);
 	}
-
+	@Override
+	public DeviceChannel queryChannelByIp(String ip) {
+		return deviceChannelMapper.queryChannelByIp(ip);
+	}
 	@Override
 	public List<DeviceChannel> queryChannelsByDeviceId(String deviceId) {
 		return deviceChannelMapper.queryChannelsByDeviceId(deviceId, null,null, null, null);

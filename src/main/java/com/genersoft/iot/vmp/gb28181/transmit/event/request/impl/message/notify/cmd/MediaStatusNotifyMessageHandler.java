@@ -1,6 +1,7 @@
 package com.genersoft.iot.vmp.gb28181.transmit.event.request.impl.message.notify.cmd;
 
 import com.genersoft.iot.vmp.common.StreamInfo;
+import com.genersoft.iot.vmp.common.VideoManagerConstants;
 import com.genersoft.iot.vmp.gb28181.bean.Device;
 import com.genersoft.iot.vmp.gb28181.bean.ParentPlatform;
 import com.genersoft.iot.vmp.gb28181.transmit.cmd.impl.SIPCommander;
@@ -62,7 +63,7 @@ public class MediaStatusNotifyMessageHandler extends SIPRequestProcessorParent i
             StreamInfo streamInfo = redisCatchStorage.queryPlaybackByDevice(device.getDeviceId(), "*");
             if (streamInfo != null) {
                 redisCatchStorage.stopPlayback(streamInfo);
-                cmder.streamByeCmd(streamInfo.getDeviceID(), streamInfo.getChannelId());
+                cmder.streamByeCmd(VideoManagerConstants.VIDEO_PLAYBACK,streamInfo.getDeviceID(), streamInfo.getChannelId());
             }
         }
     }

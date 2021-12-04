@@ -28,7 +28,7 @@ public class SipConfig {
 	Integer keepaliveTimeOut = 255;
 
 	Integer registerTimeInterval = 60;
-
+	private boolean alarm = false;
 	public void setIp(String ip) {
 		this.ip = ip;
 	}
@@ -103,5 +103,13 @@ public class SipConfig {
 
 	public Integer getRegisterTimeInterval() {
 		return registerTimeInterval;
+	}
+
+	public boolean isAlarm() {
+		return alarm;
+	}
+
+	public void setAlarm(boolean alarm) {
+		this.alarm = alarm;
 	}
 }

@@ -11,7 +11,13 @@ import java.util.List;
 import java.util.Map;
 
 public interface IRedisCatchStorage {
-
+    boolean startDownloadFile(String callId,String streamId);
+    boolean stopDownloadFile(String callId);
+    /**
+     * 查询下载列表
+     * @return
+     */
+    String queryDownload(String callId);
     /**
      * 开始播放时将流存入
      *
@@ -121,13 +127,13 @@ public interface IRedisCatchStorage {
     /**
      * 在redis添加wvp的信息
      */
-    void updateWVPInfo(String id, JSONObject jsonObject, int time);
+    void updateWVPInfo(JSONObject jsonObject, int time);
 
     /**
      * 发送推流生成与推流消失消息
      * @param jsonObject 消息内容
      */
-    void sendStreamChangeMsg(JSONObject jsonObject);
+    void sendStreamChangeMsg(String type, JSONObject jsonObject);
 
     /**
      * 添加流信息到redis
@@ -135,7 +141,7 @@ public interface IRedisCatchStorage {
      * @param app
      * @param streamId
      */
-    void addPushStream(MediaServerItem mediaServerItem, String app, String streamId, StreamInfo streamInfo);
+    void addStream(MediaServerItem mediaServerItem, String type, String app, String streamId, StreamInfo streamInfo);
 
     /**
      * 移除流信息从redis
@@ -143,7 +149,7 @@ public interface IRedisCatchStorage {
      * @param app
      * @param streamId
      */
-    void removePushStream(MediaServerItem mediaServerItem, String app, String streamId);
+    void removeStream(MediaServerItem mediaServerItem, String type, String app, String streamId);
 
     /**
      * 开始下载录像时存入
