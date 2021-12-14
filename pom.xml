@@ -62,6 +62,13 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-redis</artifactId>
+			<exclusions>
+				<!-- 过滤lettuce，使用jedis作为redis客户端 -->
+				<exclusion>
+					<groupId>io.lettuce</groupId>
+					<artifactId>lettuce-core</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -261,41 +268,4 @@
 		</plugins>
 	</build>
 
-	<profiles>
-		<profile>
-			<id>dev</id>
-			<properties>
-				<!-- 环境标识，需要与配置文件的名称相对应 -->
-				<profiles.active>dev</profiles.active>
-				<itmp.log.level>INFO</itmp.log.level>
-				<itmp.log.appender>debug</itmp.log.appender>
-				<nacos.config.namespace>4b1420a2-14f3-4f81-bf7f-4592d6e76f1a</nacos.config.namespace>
-				<nacos.config.group>DEFAULT_GROUP</nacos.config.group>
-			</properties>
-			<activation>
-				<!-- 默认环境 -->
-				<activeByDefault>true</activeByDefault>
-			</activation>
-		</profile>
-		<profile>
-			<id>test</id>
-			<properties>
-				<profiles.active>test</profiles.active>
-				<itmp.log.level>ERROR</itmp.log.level>
-				<itmp.log.appender>error</itmp.log.appender>
-				<nacos.config.namespace>736a18ad-ebad-417d-9ead-f5385d59643e</nacos.config.namespace>
-				<nacos.config.group>DEFAULT_GROUP</nacos.config.group>
-			</properties>
-		</profile>
-		<profile>
-			<id>prod</id>
-			<properties>
-				<profiles.active>prod</profiles.active>
-				<itmp.log.level>INFO</itmp.log.level>
-				<itmp.log.appender>error</itmp.log.appender>
-				<nacos.config.namespace>556b92af-2f93-4a70-9396-78d7e3076f34</nacos.config.namespace>
-				<nacos.config.group>DEFAULT_GROUP</nacos.config.group>
-			</properties>
-		</profile>
-	</profiles>
 </project>

@@ -217,6 +217,8 @@ public class MediaServerItem{
     }
 
     public boolean isRtpEnable() {
+        //这个开关被我在代码里写死了，因为我只改了这种方式，一个流对应一个rtpprocess,所以MediaServerItem返回的enable我写死了true
+        //return true;
         return rtpEnable;
     }
 

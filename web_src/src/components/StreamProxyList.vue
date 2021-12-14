@@ -211,11 +211,12 @@
 				this.getListLoading = true;
 				this.$axios({
 					method: 'get',
-					url:`/api/media/stream_info_by_app_and_stream`,
+					url:`/api/proxy/getStream`,
 					params: {
-						app: row.app,
-						stream: row.stream,
-            mediaServerId: row.mediaServerId
+					  rtspUrl: row.url,
+						deviceType: row.app,
+						deviceId: row.stream,
+            name: row.name
 					}
 				}).then(function (res) {
 					that.getListLoading = false;

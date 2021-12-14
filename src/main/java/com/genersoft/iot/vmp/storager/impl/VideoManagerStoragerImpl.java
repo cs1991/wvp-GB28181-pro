@@ -487,7 +487,7 @@ public class VideoManagerStoragerImpl implements IVideoManagerStorager {
 		String now = this.format.format(System.currentTimeMillis());
 		streamProxyItem.setCreateTime(now);
 		try {
-			if (gbStreamMapper.add(streamProxyItem)<0 || streamProxyMapper.add(streamProxyItem) < 0) {
+			if (gbStreamMapper.add(streamProxyItem)<0 ||  streamProxyMapper.add(streamProxyItem) < 0) {
 				//事务回滚
 				dataSourceTransactionManager.rollback(transactionStatus);
 			}

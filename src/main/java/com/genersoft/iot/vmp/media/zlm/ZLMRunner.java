@@ -50,7 +50,12 @@ public class ZLMRunner implements CommandLineRunner {
     public void run(String... strings) throws Exception {
         mediaServerService.clearMediaServerForOnline();
         if (mediaServerService.getDefaultMediaServer() == null) {
-            mediaServerService.addToDatabase(mediaConfig.getMediaSerItem());
+            try{
+                mediaServerService.addToDatabase(mediaConfig.getMediaSerItem());
+            }catch (Exception e){
+                logger.error("[ {} ]]插入zlm到数据库失败", ""+e.getMessage());
+            }
+
         }
 
         // 订阅 zlm启动事件, 新的zlm也会从这里进入系统

@@ -698,7 +698,7 @@ public class SIPCommander implements ISIPCommander {
 		}
 		content.append("a=downloadspeed:" + downloadSpeed + "\r\n");
 
-		content.append("y=" + ssrcInfo.getSsrc() + "\r\n");//ssrc
+		//content.append("y=" + ssrcInfo.getSsrc() + "\r\n");//ssrc
 
 		String tm = Long.toString(System.currentTimeMillis());
 
