@@ -1,5 +1,7 @@
 package com.genersoft.iot.vmp.gb28181.bean;
 
+import org.apache.http.util.TextUtils;
+
 /**
  * 直播流关联国标上级平台
  */
@@ -32,7 +34,7 @@ public class GbStream extends PlatformGbStream{
     }
 
     public String getGbId() {
-        return gbId;
+        return TextUtils.isEmpty(gbId) ? "0":gbId;
     }
 
     public void setGbId(String gbId) {
