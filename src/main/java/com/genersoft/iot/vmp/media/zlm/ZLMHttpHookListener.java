@@ -445,9 +445,9 @@ public class ZLMHttpHookListener {
 			ret.put("code", 0);
 			ret.put("close", false);
 			StreamProxyItem streamProxyItem = streamProxyService.getStreamProxyByAppAndStream(app, streamId);
-			if (streamProxyItem != null && streamProxyItem.isEnable_remove_none_reader()) {
+			if (streamProxyItem != null /*&& streamProxyItem.isEnable_remove_none_reader()*/) {
 				ret.put("close", true);
-				streamProxyService.del(app, streamId);
+				//streamProxyService.del(app, streamId);
 				String url = streamProxyItem.getUrl() != null?streamProxyItem.getUrl():streamProxyItem.getSrc_url();
 				logger.info("[{}/{}]<-[{}] 拉流代理无人观看已经移除",  app, streamId, url);
 			}else {

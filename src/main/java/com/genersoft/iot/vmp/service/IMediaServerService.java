@@ -1,6 +1,7 @@
 package com.genersoft.iot.vmp.service;
 
 import com.genersoft.iot.vmp.gb28181.bean.Device;
+import com.genersoft.iot.vmp.media.zlm.ZLMRESTfulUtils;
 import com.genersoft.iot.vmp.media.zlm.ZLMServerConfig;
 import com.genersoft.iot.vmp.media.zlm.dto.MediaServerItem;
 import com.genersoft.iot.vmp.service.bean.SSRCInfo;
@@ -34,6 +35,7 @@ public interface IMediaServerService {
 
     void setZLMConfig(MediaServerItem mediaServerItem);
 
+    void downloadBackFile(MediaServerItem mediaServerItem, String deviceId, int channel, String start, String end, ZLMRESTfulUtils.UploadCallback callback);
     SSRCInfo openRTPServer(MediaServerItem mediaServerItem, String streamId);
 
     SSRCInfo openRTPServer(MediaServerItem mediaServerItem, String streamId,boolean isPlayback, String callId);

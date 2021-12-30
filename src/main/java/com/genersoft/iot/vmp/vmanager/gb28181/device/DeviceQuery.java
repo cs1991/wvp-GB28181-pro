@@ -1,7 +1,6 @@
 package com.genersoft.iot.vmp.vmanager.gb28181.device;
 
 import com.alibaba.fastjson.JSONObject;
-import com.genersoft.iot.vmp.common.BaseData;
 import com.genersoft.iot.vmp.gb28181.bean.Device;
 import com.genersoft.iot.vmp.gb28181.bean.DeviceChannel;
 import com.genersoft.iot.vmp.gb28181.event.DeviceOffLineDetector;
@@ -143,8 +142,8 @@ public class DeviceQuery {
 	@ApiImplicitParams({
 			@ApiImplicitParam(name="ip", value = "通道的ip", required = true ,dataTypeClass = String.class)
 	})
-	public ResponseEntity<BaseData<DeviceChannel>> query(@PathVariable String ip) {
-		BaseData<DeviceChannel> deviceChannelBaseData = new BaseData<DeviceChannel>();
+	public ResponseEntity<WVPResult<DeviceChannel>> query(@PathVariable String ip) {
+		WVPResult<DeviceChannel> deviceChannelBaseData = new WVPResult<DeviceChannel>();
 
 		if (StringUtils.isEmpty(ip)) {
 			deviceChannelBaseData.setCode(1);

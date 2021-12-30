@@ -33,6 +33,16 @@ spring:
 # [可选] WVP监听的HTTP端口, 网页和接口调用都是这个端口
 server:
   port: 18080
+bus:
+  uploadurl: http://192.168.2.163:9999/file/upload/video-playback
+  enablehk: true
+devices:
+  34020000001110000001:
+    ip: 192.168.3.168
+    pwd: Aa88888888
+    user: admin
+    rtsp-port: 554
+    http-port: 8000
 
 WVP_HOST: 192.168.2.167
 REDIS_PWD:
@@ -58,7 +68,7 @@ media:
   # [必须修改] zlm服务器的内网IP
   ip: ${WVP_HOST}
   # [必须修改] zlm服务器的http.port
-  http-port: 8088
+  http-port: 8089
   # [可选] zlm服务器的hook.admin_params=secret
   secret: 035c73f7-bb6b-4889-a715-d9eb2d1925cc
   # 启用多端口模式, 多端口模式使用端口区分每路流，兼容性更好。 单端口使用流的ssrc区分， 点播超时建议使用多端口测试

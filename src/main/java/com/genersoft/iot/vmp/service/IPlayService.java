@@ -21,6 +21,8 @@ public interface IPlayService {
 
     DeferredResult<ResponseEntity<String>> playStop(String deviceId, String channelId);
 
+    DeferredResult<ResponseEntity<String>> playBackHk(String deviceId, String channelId,
+                                                             String startTime,String endTime);
     DeferredResult<ResponseEntity<String>> playBack(String deviceId, String channelId,
                                                     String startTime,String endTime);
 

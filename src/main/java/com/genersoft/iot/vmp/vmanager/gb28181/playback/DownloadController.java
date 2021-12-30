@@ -1,17 +1,19 @@
 package com.genersoft.iot.vmp.vmanager.gb28181.playback;
 
-import com.genersoft.iot.vmp.common.BaseData;
 import com.genersoft.iot.vmp.common.FileInfo;
 import com.genersoft.iot.vmp.common.StreamInfo;
 import com.genersoft.iot.vmp.common.VideoManagerConstants;
+import com.genersoft.iot.vmp.conf.BusConfig;
 import com.genersoft.iot.vmp.gb28181.bean.DeviceChannel;
 import com.genersoft.iot.vmp.gb28181.transmit.callback.DeferredResultHolder;
 import com.genersoft.iot.vmp.gb28181.transmit.callback.RequestMessage;
+import com.genersoft.iot.vmp.media.zlm.ZLMRESTfulUtils;
 import com.genersoft.iot.vmp.media.zlm.dto.MediaServerItem;
 import com.genersoft.iot.vmp.service.IMediaServerService;
 import com.genersoft.iot.vmp.service.bean.SSRCInfo;
 import com.genersoft.iot.vmp.storager.IRedisCatchStorage;
 import com.genersoft.iot.vmp.service.IPlayService;
+import com.genersoft.iot.vmp.vmanager.bean.WVPResult;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
@@ -36,6 +38,7 @@ import com.genersoft.iot.vmp.storager.IVideoManagerStorager;
 import org.springframework.web.context.request.async.DeferredResult;
 
 import javax.sip.header.CallIdHeader;
+import java.text.SimpleDateFormat;
 import java.util.UUID;
 
 @Api(tags = "历史媒体下载")
@@ -45,7 +48,8 @@ import java.util.UUID;
 public class DownloadController {
 
     private final static Logger logger = LoggerFactory.getLogger(DownloadController.class);
-
+    @Autowired
+    BusConfig busConfig;
     @Autowired
     private SIPCommander cmder;
 
@@ -166,11 +170,12 @@ public class DownloadController {
             @ApiImplicitParam(name = "startTime", value = "开始时间", dataTypeClass = Long.class),
             @ApiImplicitParam(name = "endTime", value = "结束时间", dataTypeClass = Long.class),
             @ApiImplicitParam(name = "requestId", value = "唯一标识", dataTypeClass = String.class),
+            @ApiImplicitParam(name = "deviceType", value = "设备类型(0,默认，国标设备， 1，海康, 2,大华)", dataTypeClass = Integer.class),
             @ApiImplicitParam(name = "timeout", value = "下载超时时间，默认1分钟（单位毫秒,>1分钟）", dataTypeClass = Long.class),
     })
     @GetMapping("/startByIp/{ip}")
     public DeferredResult<ResponseEntity<String>> playByIp(@PathVariable String ip, long startTime, long endTime,
-                                                           String requestId,long timeOut) {
+                                                           String requestId,int deviceType, long timeOut) {
         if (logger.isDebugEnabled()) {
             logger.debug(String.format("下载历史录像 API调用，ip：%s，requestId：%s", ip, requestId));
         }
@@ -182,7 +187,7 @@ public class DownloadController {
             deviceId = deviceChannel.getDeviceId();
             channelId = deviceChannel.getChannelId();
         }
-        String key = DeferredResultHolder.CALLBACK_CMD_DOWNLOAD + deviceId + channelId;
+        String key = DeferredResultHolder.CALLBACK_CMD_DOWNLOAD + deviceId + "_"+channelId+"_"+requestId;
         String uuid = UUID.randomUUID().toString();
         if(timeOut <= 60000){
             timeOut = 60000L;
@@ -196,7 +201,7 @@ public class DownloadController {
             RequestMessage msg = new RequestMessage();
             msg.setId(uuid);
             msg.setKey(key);
-            BaseData<FileInfo> fileInfoBaseData = new BaseData<>();
+            WVPResult fileInfoBaseData = new WVPResult();
             fileInfoBaseData.setMsg("下载超时");
             fileInfoBaseData.setCode(1);
             msg.setData(fileInfoBaseData);
@@ -211,7 +216,7 @@ public class DownloadController {
             RequestMessage msg = new RequestMessage();
             msg.setId(uuid);
             msg.setKey(key);
-			BaseData<FileInfo> fileInfoBaseData = new BaseData<>();
+            WVPResult fileInfoBaseData = new WVPResult();
 			fileInfoBaseData.setMsg("设备未找到");
 			fileInfoBaseData.setCode(1);
 			msg.setData(fileInfoBaseData);
@@ -230,54 +235,89 @@ public class DownloadController {
             RequestMessage msg = new RequestMessage();
             msg.setId(uuid);
             msg.setKey(key);
-			BaseData<FileInfo> fileInfoBaseData = new BaseData<>();
+            WVPResult fileInfoBaseData = new WVPResult<>();
 			fileInfoBaseData.setMsg("下载超时");
 			fileInfoBaseData.setCode(1);
 			msg.setData(fileInfoBaseData);
             resultHolder.invokeAllResult(msg);
             return result;
         }
-        CallIdHeader callIdHeader = cmder.getCallIdHeader(device);
-        String callId = callIdHeader.getCallId();
-        callId = callId.substring(0, callId.indexOf("@"));
-        newMediaServerItem.setStreamId(requestId);
-        SSRCInfo ssrcInfo = mediaServerService.openRTPServer(newMediaServerItem, requestId, true, callId);
+        //支持海康，并且是海康设备
+        if(busConfig.isEnablehk() && deviceType == 1){
+            //走海康的下载逻辑
+            SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
+            mediaServerService.downloadBackFile(newMediaServerItem, deviceId, Integer.parseInt(channelId.substring(channelId.length() - 3)),
+                    format.format(startTime), format.format(endTime), new ZLMRESTfulUtils.UploadCallback() {
+                        @Override
+                        public void run(JSONObject response, String errormsg) {
+                            RequestMessage msg = new RequestMessage();
+                            msg.setId(uuid);
+                            msg.setKey(key);
+                            WVPResult fileInfoBaseData = new WVPResult();
+                            if(response == null){
+                                //下载失败
+                            }else{
 
-        redisCatchStorage.startDownloadFile(callId,requestId);
-        cmder.downloadBackFileCmd(newMediaServerItem, ssrcInfo, device, channelId, startTime / 1000, endTime / 1000, "8",
-                callIdHeader, (MediaServerItem mediaServerItem, JSONObject response) -> {
-                    logger.info("收到订阅消息： " + response.toJSONString());
-                    if(newMediaServerItem.getStreamId().equals(mediaServerItem.getStreamId())){
-                        //返回下载结果
+                            }
+                            if(response==null){
+                                fileInfoBaseData.setCode(-1);
+                                fileInfoBaseData.setMsg(errormsg);
+                            }else if(response.getInteger("code") == 0){
+                                fileInfoBaseData.setCode(0);
+                                fileInfoBaseData.setMsg("success");
+                                JSONObject data = response.getJSONObject("data");
+                                fileInfoBaseData.setData(new FileInfo(data.getString("fileName"),
+                                        data.getString("bucketName"),data.getString("url")));
+                            }else {
+                                fileInfoBaseData.setCode(response.getInteger("code"));
+                                fileInfoBaseData.setMsg(response.getString("msg"));
+                            }
+                            msg.setData(fileInfoBaseData);
+                            resultHolder.invokeAllResult(msg);
+                        }
+                    });
+        }else{
+            CallIdHeader callIdHeader = cmder.getCallIdHeader(device);
+            String callId = callIdHeader.getCallId();
+            callId = callId.substring(0, callId.indexOf("@"));
+            newMediaServerItem.setStreamId(requestId);
+            SSRCInfo ssrcInfo = mediaServerService.openRTPServer(newMediaServerItem, requestId, true, callId);
+
+            redisCatchStorage.startDownloadFile(callId,requestId);
+            cmder.downloadBackFileCmd(newMediaServerItem, ssrcInfo, device, channelId, startTime / 1000, endTime / 1000, "8",
+                    callIdHeader, (MediaServerItem mediaServerItem, JSONObject response) -> {
+                        logger.info("收到订阅消息： " + response.toJSONString());
+                        if(newMediaServerItem.getStreamId().equals(mediaServerItem.getStreamId())){
+                            //返回下载结果
+                            RequestMessage msg = new RequestMessage();
+                            msg.setId(uuid);
+                            msg.setKey(key);
+                            WVPResult fileInfoBaseData = new WVPResult();
+                            if(response.getInteger("code") == 0){
+                                fileInfoBaseData.setCode(0);
+                                fileInfoBaseData.setMsg("success");
+                                JSONObject obj = response.getJSONObject("data");
+                                JSONObject data = obj.getJSONObject("data");
+                                fileInfoBaseData.setData(new FileInfo(data.getString("fileName"),
+                                        data.getString("bucketName"),data.getString("url")));
+                            }else {
+                                fileInfoBaseData.setCode(response.getInteger("code"));
+                                fileInfoBaseData.setMsg(response.getString("msg"));
+                            }
+                            msg.setData(fileInfoBaseData);
+                            resultHolder.invokeAllResult(msg);
+                        }
+                    }, event -> {
                         RequestMessage msg = new RequestMessage();
                         msg.setId(uuid);
                         msg.setKey(key);
-                        BaseData<FileInfo> fileInfoBaseData = new BaseData<>();
-                        if(response.getInteger("code") == 0){
-                            fileInfoBaseData.setCode(0);
-                            fileInfoBaseData.setMsg("success");
-                            JSONObject obj = response.getJSONObject("data");
-                            JSONObject data = obj.getJSONObject("data");
-                            fileInfoBaseData.setData(new FileInfo(data.getString("fileName"),
-                                    data.getString("bucketName"),data.getString("url")));
-                        }else {
-                            fileInfoBaseData.setCode(response.getInteger("code"));
-                            fileInfoBaseData.setMsg(response.getString("msg"));
-                        }
+                        WVPResult fileInfoBaseData = new WVPResult();
+                        fileInfoBaseData.setMsg("下载失败，"+event.msg);
+                        fileInfoBaseData.setCode(event.statusCode);
                         msg.setData(fileInfoBaseData);
                         resultHolder.invokeAllResult(msg);
-                    }
-                }, event -> {
-                    RequestMessage msg = new RequestMessage();
-                    msg.setId(uuid);
-                    msg.setKey(key);
-					BaseData<FileInfo> fileInfoBaseData = new BaseData<>();
-					fileInfoBaseData.setMsg("下载失败，"+event.msg);
-					fileInfoBaseData.setCode(event.statusCode);
-                    msg.setData(fileInfoBaseData);
-                    resultHolder.invokeAllResult(msg);
-                });
-
+                    });
+        }
         return result;
     }
 }

@@ -24,6 +24,13 @@ public class ZLMRTPServerFactory {
 
     private int[] portRangeArray = new int[2];
 
+    public void downloadFile(MediaServerItem mediaServerItem, String deviceId, int channel,
+                             String start, String end, ZLMRESTfulUtils.RequestCallback callback){
+        zlmresTfulUtils.downloadFile(mediaServerItem,deviceId,channel,start,end,callback);
+    }
+    public void uploadFile(String fileName, ZLMRESTfulUtils.UploadCallback callback) {
+        zlmresTfulUtils.uploadFile(fileName,callback);
+    }
     public int createRTPServer(MediaServerItem mediaServerItem, String streamId,String callId) {
         Map<String, Integer> currentStreams = new HashMap<>();
         JSONObject listRtpServerJsonResult = zlmresTfulUtils.listRtpServer(mediaServerItem);

@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.genersoft.iot.vmp.common.VideoManagerConstants;
+import com.genersoft.iot.vmp.conf.BusConfig;
 import com.genersoft.iot.vmp.conf.MediaConfig;
 import com.genersoft.iot.vmp.conf.SipConfig;
 import com.genersoft.iot.vmp.conf.UserSetup;
@@ -21,7 +22,9 @@ import com.genersoft.iot.vmp.storager.dao.MediaServerMapper;
 import com.genersoft.iot.vmp.utils.redis.JedisUtil;
 import com.genersoft.iot.vmp.utils.redis.RedisUtil;
 import com.genersoft.iot.vmp.vmanager.bean.WVPResult;
+import com.mysql.cj.util.TestUtils;
 import okhttp3.*;
+import org.apache.http.util.TextUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,6 +76,8 @@ public class MediaServerServiceImpl implements IMediaServerService, CommandLineR
     @Autowired
     JedisUtil jedisUtil;
 
+    @Autowired
+    BusConfig busConfig;
     private final SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     /**
@@ -99,7 +104,25 @@ public class MediaServerServiceImpl implements IMediaServerService, CommandLineR
             }
         }
     }
+    @Override
+    public void downloadBackFile(MediaServerItem mediaServerItem, String deviceId, int channel, String start, String end, ZLMRESTfulUtils.UploadCallback callback){
+        if (mediaServerItem == null || mediaServerItem.getId() == null) {
+            callback.run(null,"没有找到流媒体节点");
+            return;
+        }
+        zlmrtpServerFactory.downloadFile(mediaServerItem, deviceId, channel, start, end, new ZLMRESTfulUtils.RequestCallback() {
+            @Override
+            public void run(JSONObject response) {
+                if(response.getInteger("code") == 0){
+                    //成功，解析，并上传
+                    zlmrtpServerFactory.uploadFile(response.getString("fileName"),callback);
+                }else{
+                    callback.run(null,response.getString("msg"));
+                }
 
+            }
+        });
+    }
     @Override
     public SSRCInfo openRTPServer(MediaServerItem mediaServerItem, String streamId) {
         return openRTPServer(mediaServerItem, streamId, false, null);
@@ -505,6 +528,7 @@ public class MediaServerServiceImpl implements IMediaServerService, CommandLineR
         param.put("hook.on_stream_not_found", String.format("%s/on_stream_not_found", hookPrex));
         param.put("hook.on_server_keepalive",String.format("%s/on_server_keepalive", hookPrex));
         param.put("hook.on_record_mp4_finish",String.format("%s/on_file_upload", hookPrex));
+        param.put("hook.uploadUrl",busConfig.getUploadurl());
         param.put("hook.timeoutSec", "20");
         param.put("general.streamNoneReaderDelayMS", "-1".equals(mediaServerItem.getStreamNoneReaderDelayMS()) ? "3600000" : mediaServerItem.getStreamNoneReaderDelayMS());
 

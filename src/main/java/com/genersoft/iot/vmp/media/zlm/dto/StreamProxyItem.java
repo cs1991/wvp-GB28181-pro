@@ -17,7 +17,7 @@ public class StreamProxyItem extends GbStream {
     private boolean enable;
     private boolean enable_hls;
     private boolean enable_mp4;
-    private boolean enable_remove_none_reader; // 无人观看时删除
+    private boolean enable_remove_none_reader = true; // 无人观看时删除
     private String platformGbId;
     private String createTime;
 

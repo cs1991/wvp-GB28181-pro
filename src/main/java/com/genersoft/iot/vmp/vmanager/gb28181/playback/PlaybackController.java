@@ -2,6 +2,7 @@ package com.genersoft.iot.vmp.vmanager.gb28181.playback;
 
 import com.genersoft.iot.vmp.common.StreamInfo;
 import com.genersoft.iot.vmp.common.VideoManagerConstants;
+import com.genersoft.iot.vmp.conf.BusConfig;
 import com.genersoft.iot.vmp.gb28181.bean.DeviceChannel;
 import com.genersoft.iot.vmp.gb28181.transmit.callback.DeferredResultHolder;
 import com.genersoft.iot.vmp.gb28181.transmit.callback.RequestMessage;
@@ -45,6 +46,8 @@ public class PlaybackController {
 	private final static Logger logger = LoggerFactory.getLogger(PlaybackController.class);
 
 	@Autowired
+	private BusConfig busConfig;
+	@Autowired
 	private SIPCommander cmder;
 
 	@Autowired
@@ -67,11 +70,12 @@ public class PlaybackController {
 	@ApiOperation("开始视频回放(通过ip)")
 	@ApiImplicitParams({
 			@ApiImplicitParam(name = "ip", value = "设备Ip", dataTypeClass = String.class),
+			@ApiImplicitParam(name = "deviceType", value = "设备类型(0,默认，国标设备， 1，海康, 2,大华)", dataTypeClass = Integer.class),
 			@ApiImplicitParam(name = "startTime", value = "开始时间", dataTypeClass = String.class),
 			@ApiImplicitParam(name = "endTime", value = "结束时间", dataTypeClass = String.class),
 	})
 	@GetMapping("/startByIp/{ip}")
-	public DeferredResult<ResponseEntity<String>> play(@PathVariable String ip,
+	public DeferredResult<ResponseEntity<String>> play(@PathVariable String ip,int deviceType,
 													   String startTime,String endTime) {
 		//先获取通道设备
 		DeviceChannel deviceChannel = storager.queryChannelByIp(ip);
@@ -81,7 +85,13 @@ public class PlaybackController {
 			deviceId = deviceChannel.getDeviceId();
 			channelId = deviceChannel.getChannelId();
 		}
-		return playService.playBack(deviceId,channelId,startTime,endTime);
+		//海康逻辑
+		if(deviceType == 1 && busConfig.isEnablehk()){
+			return playService.playBackHk(deviceId,channelId,startTime,endTime);
+		}else {
+			return playService.playBack(deviceId,channelId,startTime,endTime);
+		}
+
 	}
 	@ApiOperation("停止视频回放(通过IP)")
 	@ApiImplicitParams({
